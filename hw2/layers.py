@@ -273,11 +273,9 @@ class Linear(Layer):
         #   - db, the gradient of the loss with respect to b
         #  Note: You should ACCUMULATE gradients in dw and db.
         # ====== YOUR CODE: ======
-        print(f"shape of w is {self.w.shape}")
-        print(f"shape of x is {x.shape}")
-        print(f"shape of dout is {dout.shape}")
-
-        dx = 0
+        self.dw += dout.T @ x
+        self.db += dout.sum(0)
+        dx = dout @ self.w
         # ========================
 
         return dx
@@ -318,7 +316,11 @@ class CrossEntropyLoss(Layer):
         # TODO: Compute the cross entropy loss using the last formula from the
         #  notebook (i.e. directly using the class scores).
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+
+        correct_scores = -x.gather(1, y.unsqueeze(1)).squeeze()
+        x_softmax = torch.log(torch.exp(x).sum(1))
+        loss = torch.mean(correct_scores + x_softmax)
+
         # ========================
 
         self.grad_cache["x"] = x
@@ -337,7 +339,11 @@ class CrossEntropyLoss(Layer):
 
         # TODO: Calculate the gradient w.r.t. the input x.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        x = self.grad_cache["x"]
+        y = self.grad_cache["y"]
+        x_softmax = torch.exp(x) / torch.exp(x).sum(1).unsqueeze(1)
+        one_hot = torch.nn.functional.one_hot(y)
+        dx = dout * (x_softmax - one_hot) / N
         # ========================
 
         return dx
@@ -390,38 +396,35 @@ class Sequential(Layer):
         super().__init__()
         self.layers = layers
 
-    def forward(self, x, **kw):
-        out = None
-
+    def forward(self, x, **kwargs):
         # TODO: Implement the forward pass by passing each layer's output
         #  as the input of the next.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        out = x
+
+        for layer in self.layers:
+            out = layer(out, **kwargs)
         # ========================
 
         return out
 
     def backward(self, dout):
-        din = None
-
         # TODO: Implement the backward pass.
         #  Each layer's input gradient should be the previous layer's output
         #  gradient. Behold the backpropagation algorithm in action!
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        din = dout
+
+        for layer in reversed(self.layers):
+            din = layer.backward(din)
         # ========================
 
         return din
 
     def params(self):
-        params = []
-
         # TODO: Return the parameter tuples from all layers.
-        # ====== YOUR CODE: ======
-        raise NotImplementedError()
-        # ========================
 
-        return params
+        return [param for layer in self.layers for param in layer.params()]
 
     def train(self, training_mode=True):
         for layer in self.layers:
@@ -442,7 +445,7 @@ class Sequential(Layer):
 
 class MLP(Layer):
     """
-    A simple multilayer perceptron based on our custom Layers.
+    A simple MLP based on our custom Layers.
     Architecture is (with ReLU activation):
 
         FC(in, h1) -> ReLU -> FC(h1,h2) -> ReLU -> ... -> FC(hn, num_classes)
@@ -476,7 +479,15 @@ class MLP(Layer):
 
         # TODO: Build the MLP architecture as described.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        features_set = [in_features, *hidden_features, num_classes]
+        activation_class = ReLU if activation == 'relu' else Sigmoid
+
+        for i in range(len(features_set) - 1):
+            layers.append(Linear(features_set[i], features_set[i + 1]))
+            layers.append(activation_class())
+
+        layers.pop(-1)
+
         # ========================
 
         self.sequence = Sequential(*layers)
