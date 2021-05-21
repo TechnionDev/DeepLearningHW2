@@ -36,14 +36,14 @@ class Trainer(abc.ABC):
             model.to(self.device)
 
     def fit(
-        self,
-        dl_train: DataLoader,
-        dl_test: DataLoader,
-        num_epochs,
-        checkpoints: str = None,
-        early_stopping: int = None,
-        print_every=1,
-        **kw,
+            self,
+            dl_train: DataLoader,
+            dl_test: DataLoader,
+            num_epochs,
+            checkpoints: str = None,
+            early_stopping: int = None,
+            print_every=1,
+            **kw,
     ) -> FitResult:
         """
         Trains the model for multiple epochs with a given training set,
@@ -69,7 +69,7 @@ class Trainer(abc.ABC):
             verbose = False  # pass this to train/test_epoch.
             if epoch % print_every == 0 or epoch == num_epochs - 1:
                 verbose = True
-            self._print(f"--- EPOCH {epoch+1}/{num_epochs} ---", verbose)
+            self._print(f"--- EPOCH {epoch + 1}/{num_epochs} ---", verbose)
 
             # TODO: Train & evaluate for one epoch
             #  - Use the train/test_epoch methods.
@@ -80,7 +80,26 @@ class Trainer(abc.ABC):
             #    save the model to the file specified by the checkpoints
             #    argument.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            actual_num_epochs = epoch
+            epoch_train_result = self.train_epoch(dl_train, verbose=verbose, **kw)
+            train_loss += [sum(epoch_train_result.losses) / len(epoch_train_result.losses)]
+            train_acc += [epoch_train_result.accuracy]
+            epoch_test_result = self.test_epoch(dl_test, verbose=verbose, **kw)
+            test_loss += [sum(epoch_test_result.losses) / len(epoch_test_result.losses)]
+            test_acc += [epoch_test_result.accuracy]
+
+            if best_acc is None or best_acc < test_acc:
+                best_acc = test_acc
+
+                if checkpoints is not None:
+                    torch.save(self.model, checkpoints)
+            else:
+                epochs_without_improvement += 1
+
+            if early_stopping:
+                if epochs_without_improvement >= early_stopping:
+                    break
+
             # ========================
 
         return FitResult(actual_num_epochs, train_loss, train_acc, test_loss, test_acc)
@@ -138,10 +157,10 @@ class Trainer(abc.ABC):
 
     @staticmethod
     def _foreach_batch(
-        dl: DataLoader,
-        forward_fn: Callable[[Any], BatchResult],
-        verbose=True,
-        max_batches=None,
+            dl: DataLoader,
+            forward_fn: Callable[[Any], BatchResult],
+            verbose=True,
+            max_batches=None,
     ) -> EpochResult:
         """
         Evaluates the given forward-function on batches from the given
@@ -200,7 +219,14 @@ class LayerTrainer(Trainer):
         #  - Calculate number of correct predictions (make sure it's an int,
         #    not a tensor) as num_correct.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        X = X.reshape(X.shape[0], -1)
+        self.optimizer.zero_grad()
+        scores = self.model(X)
+        loss = self.loss_fn(scores, y)
+        dl = self.loss_fn.backward()
+        self.model.backward(dl)
+        self.optimizer.step()
+        num_correct = (torch.argmax(scores, 1) == y).sum().item()
         # ========================
 
         return BatchResult(loss, num_correct)
@@ -210,7 +236,10 @@ class LayerTrainer(Trainer):
 
         # TODO: Evaluate the Layer model on one batch of data.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        X = X.reshape(X.shape[0], -1)
+        scores = self.model(X)
+        loss = self.loss_fn(scores, y)
+        num_correct = (torch.argmax(scores, 1) == y).sum().item()
         # ========================
 
         return BatchResult(loss, num_correct)
