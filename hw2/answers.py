@@ -9,14 +9,14 @@ math (delimited with $$).
 # Part 1 answers
 
 part1_q1 = r"""
-**Your answer:**
+*Your answer:*
 
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
+Write your answer using *markdown* and $\LaTeX$:
+python
 # A code block
 a = 2
-```
+
 An equation: $e^{i\pi} -1 = 0$
 
 """
@@ -29,7 +29,9 @@ def part2_overfit_hp():
     wstd, lr, reg = 0, 0, 0
     # TODO: Tweak the hyperparameters until you overfit the small dataset.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    wstd=5
+    lr=0.05
+    # reg=0.01
     # ========================
     return dict(wstd=wstd, lr=lr, reg=reg)
 
@@ -40,7 +42,11 @@ def part2_optim_hp():
     # TODO: Tweak the hyperparameters to get the best results you can.
     # You may want to use different learning rates for each optimizer.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    wstd = 0.2
+    lr_vanilla = 0.045
+    lr_momentum = 0.003
+    lr_rmsprop = 0.00016
+    reg = 0.005
     # ========================
     return dict(
         wstd=wstd,
@@ -62,27 +68,27 @@ def part2_dropout_hp():
 
 
 part2_q1 = r"""
-**Your answer:**
+*Your answer:*
 
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
+Write your answer using *markdown* and $\LaTeX$:
+python
 # A code block
 a = 2
-```
+
 An equation: $e^{i\pi} -1 = 0$
 
 """
 
 part2_q2 = r"""
-**Your answer:**
+*Your answer:*
 
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
+Write your answer using *markdown* and $\LaTeX$:
+python
 # A code block
 a = 2
-```
+
 An equation: $e^{i\pi} -1 = 0$
 
 """
@@ -92,79 +98,79 @@ An equation: $e^{i\pi} -1 = 0$
 # Part 3 answers
 
 part3_q1 = r"""
-**Your answer:**
+*Your answer:*
 
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
+Write your answer using *markdown* and $\LaTeX$:
+python
 # A code block
 a = 2
-```
+
 An equation: $e^{i\pi} -1 = 0$
 
 """
 
 part3_q2 = r"""
-**Your answer:**
+*Your answer:*
 
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
+Write your answer using *markdown* and $\LaTeX$:
+python
 # A code block
 a = 2
-```
+
 An equation: $e^{i\pi} -1 = 0$
 
 """
 
 part3_q3 = r"""
-**Your answer:**
+*Your answer:*
 
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
+Write your answer using *markdown* and $\LaTeX$:
+python
 # A code block
 a = 2
-```
+
 An equation: $e^{i\pi} -1 = 0$
 
 """
 
 part3_q4 = r"""
-**Your answer:**
+*Your answer:*
 
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
+Write your answer using *markdown* and $\LaTeX$:
+python
 # A code block
 a = 2
-```
+
 An equation: $e^{i\pi} -1 = 0$
 
 """
 
 part3_q5 = r"""
-**Your answer:**
+*Your answer:*
 
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
+Write your answer using *markdown* and $\LaTeX$:
+python
 # A code block
 a = 2
-```
+
 An equation: $e^{i\pi} -1 = 0$
 
 """
 
 part3_q6 = r"""
-**Your answer:**
+*Your answer:*
 
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
+Write your answer using *markdown* and $\LaTeX$:
+python
 # A code block
 a = 2
-```
+
 An equation: $e^{i\pi} -1 = 0$
 
 """
