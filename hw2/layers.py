@@ -342,7 +342,8 @@ class CrossEntropyLoss(Layer):
         x = self.grad_cache["x"]
         y = self.grad_cache["y"]
         x_softmax = torch.exp(x) / torch.exp(x).sum(1).unsqueeze(1)
-        one_hot = torch.nn.functional.one_hot(y)
+        one_hot = torch.nn.functional.one_hot(y,num_classes=x.shape[1])
+
         dx = dout * (x_softmax - one_hot) / N
         # ========================
 
@@ -367,7 +368,13 @@ class Dropout(Layer):
         #  Notice that contrary to previous layers, this layer behaves
         #  differently a according to the current training_mode (train/test).
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        dropout = torch.bernoulli(torch.ones(x.shape[1])*self.p)
+        dropout_mat = dropout.unsqueeze(1).T.expand(x.shape[0], x.shape[1])
+        if self.training_mode:
+            out = x * dropout_mat
+        else:
+            out = x/(1-self.p)
+        self.grad_cache['dropout'] = dropout_mat
         # ========================
 
         return out
@@ -375,7 +382,10 @@ class Dropout(Layer):
     def backward(self, dout):
         # TODO: Implement the dropout backward pass.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        if self.training_mode:
+            dx = dout * self.grad_cache['dropout']
+        else:
+            dx = dout/(1-self.p)
         # ========================
 
         return dx
@@ -485,9 +495,12 @@ class MLP(Layer):
         for i in range(len(features_set) - 1):
             layers.append(Linear(features_set[i], features_set[i + 1]))
             layers.append(activation_class())
+            if dropout > 0:
+                layers.append(Dropout(dropout))
 
         layers.pop(-1)
-
+        if dropout > 0:
+            layers.pop(-1)
         # ========================
 
         self.sequence = Sequential(*layers)
@@ -506,3 +519,4 @@ class MLP(Layer):
 
     def __repr__(self):
         return f"MLP, {self.sequence}"
+
