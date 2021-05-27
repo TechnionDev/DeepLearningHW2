@@ -63,7 +63,7 @@ def part2_dropout_hp():
     # dropout.
     # ====== YOUR CODE: ======
     wstd = 0.1
-    lr = 0.0002
+    lr = 0.0023
     # ========================
     return dict(wstd=wstd, lr=lr)
 

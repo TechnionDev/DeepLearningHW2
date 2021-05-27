@@ -77,10 +77,21 @@ class ConvClassifier(nn.Module):
         #  Note: If N is not divisible by P, then N mod P additional
         #  CONV->ACTs should exist at the end, without a POOL after them.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
-
+        cur_in_channels = in_channels
+        i = 0
+        while i < len(self.channels):
+            for j in range(self.pool_every):
+                layers += [
+                    nn.Conv2d(in_channels=cur_in_channels,
+                              out_channels=self.channels[i],
+                              **self.conv_params),
+                    ACTIVATIONS[self.activation_type](**self.activation_params)]
+                cur_in_channels = self.channels[i]
+                i+=1
+            layers += [POOLINGS[self.pooling_type](**self.pooling_params)]
         # ========================
         seq = nn.Sequential(*layers)
+        print(seq)
         return seq
 
     def _n_features(self) -> int:
@@ -92,7 +103,8 @@ class ConvClassifier(nn.Module):
         rng_state = torch.get_rng_state()
         try:
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            in_channels, in_h, in_w, = tuple(self.in_size)
+            print("test")
             # ========================
         finally:
             torch.set_rng_state(rng_state)
@@ -276,6 +288,6 @@ class YourCodeNet(ConvClassifier):
     #  For example, add batchnorm, dropout, skip connections, change conv
     #  filter sizes etc.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    # raise NotImplementedError()
 
     # ========================

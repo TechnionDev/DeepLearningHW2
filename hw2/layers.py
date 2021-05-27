@@ -369,12 +369,11 @@ class Dropout(Layer):
         #  differently a according to the current training_mode (train/test).
         # ====== YOUR CODE: ======
         dropout = torch.bernoulli(torch.ones(x.shape[1])*self.p)
-        dropout_mat = dropout.unsqueeze(1).T.expand(x.shape[0], x.shape[1])
         if self.training_mode:
-            out = x * dropout_mat
+            out = x * dropout
         else:
             out = x/(1-self.p)
-        self.grad_cache['dropout'] = dropout_mat
+        self.grad_cache['dropout'] = dropout
         # ========================
 
         return out
