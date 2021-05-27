@@ -16,17 +16,17 @@ class ConvClassifier(nn.Module):
     """
 
     def __init__(
-        self,
-        in_size,
-        out_classes: int,
-        channels: Sequence[int],
-        pool_every: int,
-        hidden_dims: Sequence[int],
-        conv_params: dict = {},
-        activation_type: str = "relu",
-        activation_params: dict = {},
-        pooling_type: str = "max",
-        pooling_params: dict = {},
+            self,
+            in_size,
+            out_classes: int,
+            channels: Sequence[int],
+            pool_every: int,
+            hidden_dims: Sequence[int],
+            conv_params: dict = {},
+            activation_type: str = "relu",
+            activation_params: dict = {},
+            pooling_type: str = "max",
+            pooling_params: dict = {},
     ):
         """
         :param in_size: Size of input images, e.g. (C,H,W).
@@ -80,18 +80,19 @@ class ConvClassifier(nn.Module):
         cur_in_channels = in_channels
         i = 0
         while i < len(self.channels):
-            for j in range(self.pool_every):
+            count = min(self.pool_every, len(self.channels) - i)
+            for j in range(count):
                 layers += [
                     nn.Conv2d(in_channels=cur_in_channels,
                               out_channels=self.channels[i],
                               **self.conv_params),
                     ACTIVATIONS[self.activation_type](**self.activation_params)]
                 cur_in_channels = self.channels[i]
-                i+=1
-            layers += [POOLINGS[self.pooling_type](**self.pooling_params)]
+                i += 1
+            if count == self.pool_every:
+                layers += [POOLINGS[self.pooling_type](**self.pooling_params)]
         # ========================
         seq = nn.Sequential(*layers)
-        print(seq)
         return seq
 
     def _n_features(self) -> int:
@@ -103,8 +104,10 @@ class ConvClassifier(nn.Module):
         rng_state = torch.get_rng_state()
         try:
             # ====== YOUR CODE: ======
-            in_channels, in_h, in_w, = tuple(self.in_size)
-            print("test")
+            random_input = torch.rand((1, *self.in_size))
+            shape = self.feature_extractor(random_input).shape
+            return shape[1] * shape[2] * shape[3]
+
             # ========================
         finally:
             torch.set_rng_state(rng_state)
@@ -119,7 +122,14 @@ class ConvClassifier(nn.Module):
         #  (FC -> ACT)*M -> Linear
         #  The last Linear layer should have an output dim of out_classes.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        cur_dim = n_features
+        for hidden_dim in self.hidden_dims:
+            layers += [nn.Linear(in_features=cur_dim,
+                                 out_features=hidden_dim),
+                       ACTIVATIONS[self.activation_type](**self.activation_params)]
+            cur_dim = hidden_dim
+        layers += [nn.Linear(in_features=self.hidden_dims[-1],
+                             out_features=self.out_classes)]
         # ========================
 
         seq = nn.Sequential(*layers)
@@ -130,7 +140,7 @@ class ConvClassifier(nn.Module):
         #  Extract features from the input, run the classifier on them and
         #  return class scores.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        out = self.classifier(self.feature_extractor(x).reshape(x.shape[0], -1))
         # ========================
         return out
 
@@ -141,15 +151,15 @@ class ResidualBlock(nn.Module):
     """
 
     def __init__(
-        self,
-        in_channels: int,
-        channels: Sequence[int],
-        kernel_sizes: Sequence[int],
-        batchnorm: bool = False,
-        dropout: float = 0.0,
-        activation_type: str = "relu",
-        activation_params: dict = {},
-        **kwargs,
+            self,
+            in_channels: int,
+            channels: Sequence[int],
+            kernel_sizes: Sequence[int],
+            batchnorm: bool = False,
+            dropout: float = 0.0,
+            activation_type: str = "relu",
+            activation_params: dict = {},
+            **kwargs,
     ):
         """
         :param in_channels: Number of input channels to the first convolution.
@@ -190,7 +200,34 @@ class ResidualBlock(nn.Module):
         #  - Don't create layers which you don't use! This will prevent
         #    correct comparison in the test.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        main_path_layers = []
+        cur_channel = in_channels
+        for channel, kernel_size in zip(channels, kernel_sizes):
+            main_path_layers += [nn.Conv2d(in_channels=cur_channel,
+                                           out_channels=channel,
+                                           kernel_size=kernel_size,
+                                           padding=int((kernel_size - 1) / 2),
+                                           bias=True)]
+            if dropout > 0:
+                main_path_layers += [nn.Dropout2d(p=dropout)]
+            if batchnorm:
+                main_path_layers += [nn.BatchNorm2d(num_features=channel)]
+            main_path_layers += [ACTIVATIONS[activation_type](**activation_params)]
+            cur_channel = channel
+        main_path_layers = main_path_layers[:-1]
+        if dropout > 0:
+            main_path_layers = main_path_layers[:-1]
+        if batchnorm:
+            main_path_layers = main_path_layers[:-1]
+        self.main_path = nn.Sequential(*main_path_layers)
+        if in_channels != channels[-1]:
+            self.shortcut_path = nn.Sequential(nn.Conv2d(in_channels=in_channels,
+                                                         out_channels=channels[-1],
+                                                         kernel_size=1,
+                                                         bias=False))
+        else:
+            self.shortcut_path = nn.Sequential(nn.Identity())
+
         # ========================
 
     def forward(self, x):
@@ -206,11 +243,11 @@ class ResidualBottleneckBlock(ResidualBlock):
     """
 
     def __init__(
-        self,
-        in_out_channels: int,
-        inner_channels: Sequence[int],
-        inner_kernel_sizes: Sequence[int],
-        **kwargs,
+            self,
+            in_out_channels: int,
+            inner_channels: Sequence[int],
+            inner_kernel_sizes: Sequence[int],
+            **kwargs,
     ):
         """
         :param in_out_channels: Number of input and output channels of the block.
@@ -225,21 +262,26 @@ class ResidualBottleneckBlock(ResidualBlock):
         :param kwargs: Any additional arguments supported by ResidualBlock.
         """
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        inner_channels = [inner_channels[0], *inner_channels, in_out_channels]
+        inner_kernel_sizes = [1, *inner_kernel_sizes, 1]
+        super().__init__(in_channels=in_out_channels,
+                         channels=inner_channels,
+                         kernel_sizes=inner_kernel_sizes,
+                         **kwargs)
         # ========================
 
 
 class ResNetClassifier(ConvClassifier):
     def __init__(
-        self,
-        in_size,
-        out_classes,
-        channels,
-        pool_every,
-        hidden_dims,
-        batchnorm=False,
-        dropout=0.0,
-        **kwargs,
+            self,
+            in_size,
+            out_classes,
+            channels,
+            pool_every,
+            hidden_dims,
+            batchnorm=False,
+            dropout=0.0,
+            **kwargs,
     ):
         """
         See arguments of ConvClassifier & ResidualBlock.
@@ -265,7 +307,21 @@ class ResNetClassifier(ConvClassifier):
         #    without a POOL after them.
         #  - Use your own ResidualBlock implementation.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        cur_in_channels = in_channels
+        i = 0
+        while i < len(self.channels):
+            count = min(self.pool_every, len(self.channels) - i)
+            layers += [ResidualBlock(in_channels=cur_in_channels,
+                                     channels=self.channels[i:i + self.pool_every],
+                                     kernel_sizes=[3] * count,
+                                     batchnorm=self.batchnorm,
+                                     dropout=self.dropout,
+                                     activation_type=self.activation_type,
+                                     activation_params=self.activation_params)]
+            if count == self.pool_every:
+                layers += [POOLINGS[self.pooling_type](**self.pooling_params)]
+            i += count
+            cur_in_channels = self.channels[i - 1]
         # ========================
         seq = nn.Sequential(*layers)
         return seq
