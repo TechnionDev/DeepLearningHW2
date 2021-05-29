@@ -90,7 +90,7 @@ class Trainer(abc.ABC):
 
             if best_acc is None or best_acc < test_acc:
                 best_acc = test_acc
-
+                epochs_without_improvement = 0
                 if checkpoints is not None:
                     torch.save(self.model, checkpoints)
             else:
