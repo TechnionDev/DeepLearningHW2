@@ -79,8 +79,10 @@ class ConvClassifier(nn.Module):
         # ====== YOUR CODE: ======
         cur_in_channels = in_channels
         i = 0
+
         while i < len(self.channels):
             count = min(self.pool_every, len(self.channels) - i)
+
             for j in range(count):
                 layers += [
                     nn.Conv2d(in_channels=cur_in_channels,
@@ -89,6 +91,7 @@ class ConvClassifier(nn.Module):
                     ACTIVATIONS[self.activation_type](**self.activation_params)]
                 cur_in_channels = self.channels[i]
                 i += 1
+
             if count == self.pool_every:
                 layers += [POOLINGS[self.pooling_type](**self.pooling_params)]
         # ========================
@@ -104,8 +107,8 @@ class ConvClassifier(nn.Module):
         rng_state = torch.get_rng_state()
         try:
             # ====== YOUR CODE: ======
-            random_input = torch.rand((1, *self.in_size))
-            shape = self.feature_extractor(random_input).shape
+            zero_input = torch.zeros((1, *self.in_size))
+            shape = self.feature_extractor(zero_input).shape
             return shape[1] * shape[2] * shape[3]
 
             # ========================
@@ -214,19 +217,17 @@ class ResidualBlock(nn.Module):
                 main_path_layers += [nn.BatchNorm2d(num_features=channel)]
             main_path_layers += [ACTIVATIONS[activation_type](**activation_params)]
             cur_channel = channel
-        main_path_layers = main_path_layers[:-1]
-        if dropout > 0:
-            main_path_layers = main_path_layers[:-1]
-        if batchnorm:
-            main_path_layers = main_path_layers[:-1]
+
+        main_path_layers = main_path_layers[:-(1 + (dropout > 0) + batchnorm)]
+
         self.main_path = nn.Sequential(*main_path_layers)
         if in_channels != channels[-1]:
-            self.shortcut_path = nn.Sequential(nn.Conv2d(in_channels=in_channels,
-                                                         out_channels=channels[-1],
-                                                         kernel_size=1,
-                                                         bias=False))
+            self.shortcut_path = nn.Conv2d(in_channels=in_channels,
+                                           out_channels=channels[-1],
+                                           kernel_size=1,
+                                           bias=False)
         else:
-            self.shortcut_path = nn.Sequential(nn.Identity())
+            self.shortcut_path = nn.Identity()
 
         # ========================
 
