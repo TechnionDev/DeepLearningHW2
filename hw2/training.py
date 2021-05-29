@@ -263,7 +263,7 @@ class TorchTrainer(Trainer):
         # ====== YOUR CODE: ======
         self.optimizer.zero_grad()
         scores = self.model(X)
-        loss = self.loss_fn(scores,y)
+        loss = self.loss_fn(scores, y)
         loss.backward()
         self.optimizer.step()
         num_correct = (torch.argmax(scores, 1) == y).sum().item()
