@@ -270,7 +270,49 @@ class ResidualBottleneckBlock(ResidualBlock):
                          kernel_sizes=inner_kernel_sizes,
                          **kwargs)
         # ========================
+# class WideArray
+class InceptionBlock(nn.Module):
+    """
+    Generate a general purpose Insight block
+    """
+    def __init__(
+            self,
+            in_channels: int,
+            out_channels: int,
+            kernel_sizes: Sequence[int] =[1,3,5],
+            batchnorm: bool = False,
+            dropout: float = 0.0,
+            activation_type: str = "relu",
+            activation_params: dict = {},
+            pooling_type: str = "max",
+            **kwargs,
+    ):
+        super().__init__()
+        out_channels = int(out_channels / 4)
+        self.wide_layer = []
+        pooling = nn.Sequential(
+                            POOLINGS[pooling_type](kernel_size=3, stride=1, padding=1),
+                            nn.Conv2d(in_channels=in_channels,
+                            out_channels=out_channels,
+                            kernel_size=1))
+        self.wide_layer += [pooling]
+        self.wide_layer += [nn.Conv2d(in_channels=in_channels,
+                            out_channels=out_channels,
+                            kernel_size=kernel_size,
+                            padding=int((kernel_size - 1) / 2),
+                            bias=True) for kernel_size in kernel_sizes]
+        self.wide_layer = nn.ModuleList(self.wide_layer)
+        self.activation_layer = ACTIVATIONS[activation_type](**activation_params)
+        self.size=2
+        # self.wide_layer=nn.Sequential(*self.wide_layer)
 
+        # print(self.wide_layer)
+    def forward(self,x):
+        output = [conv_filter(x) for conv_filter in self.wide_layer]
+        activated = [self.activation_layer(element) for element in output]
+        return torch.cat(activated,1) 
+        
+    
 
 class ResNetClassifier(ConvClassifier):
     def __init__(
@@ -326,7 +368,6 @@ class ResNetClassifier(ConvClassifier):
         # ========================
         seq = nn.Sequential(*layers)
         return seq
-
 
 class YourCodeNet(ConvClassifier):
     def __init__(self, *args, **kwargs):
