@@ -32,7 +32,7 @@ def run_experiment(
     epochs=100,
     early_stopping=3,
     checkpoints=None,
-    lr=2e-3,
+    lr=1e-3,
     reg=1e-3,
     # Model params
     filters_per_layer=[64],
@@ -77,39 +77,7 @@ def run_experiment(
     #   for you automatically.
     fit_res = None
     # ====== YOUR CODE: ======
-    dl_train = torch.utils.data.DataLoader(ds_train, batch_size=batches,
-                                           shuffle=False)
-    dl_test = torch.utils.data.DataLoader(ds_test, batch_size=batches,
-                                          shuffle=False)
-    channels = [channel for channel in filters_per_layer for _ in range(layers_per_block)]
-    conv_params=dict(kernel_size=3, stride=1, padding=1)
-    pooling_params=dict(kernel_size=2)
-    x0, _=ds_train[0]
-    dilation_params = {
-    'kernel_size':5,
-    'stride':1,
-    'dilation':2
-    }
-    # model = cnn.YourCodeNet(
-    #     x0.shape, 10, 
-    #     channels=[16,32],
-    #      pool_every=2,
-    #       hidden_dims=[64,32],
-    #       dialate_every = 1,dilation_params=dialation_params ,dropout=0.4,batchnorm=True)
-
-    
-    model = model_cls(x0.shape, 10, channels=channels,
-                      pool_every=pool_every, hidden_dims=hidden_dims, 
-                      batchnorm=True,
-                      conv_params=conv_params, activation_type='relu',
-                      pooling_type='max', pooling_params=pooling_params,dilation_params=dilation_params,**kw)
-    print(model)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=reg, eps=1e-4)
-    loss_fn = torch.nn.CrossEntropyLoss()
-
-    trainer = training.TorchTrainer(model, loss_fn, optimizer, device=device)
-    fit_res = trainer.fit(dl_train=dl_train, dl_test=dl_test, num_epochs=epochs, checkpoints=checkpoints,
-                          early_stopping=early_stopping, **kw)
+    raise NotImplementedError()
     # ========================
 
     save_experiment(run_name, out_dir, cfg, fit_res)
@@ -117,8 +85,6 @@ def run_experiment(
 
 def save_experiment(run_name, out_dir, cfg, fit_res):
     output = dict(config=cfg, results=fit_res._asdict())
-    print(f"fit res is {fit_res}")
-    print(f"fit res as dict is {fit_res._asdict()}")
 
     cfg_LK = (
         f'L{cfg["layers_per_block"]}_K'
@@ -173,7 +139,7 @@ def parse_cli():
         default=None,
         required=False,
     )
-    
+
     # # Training
     sp_exp.add_argument(
         "--bs-train",
@@ -203,7 +169,7 @@ def parse_cli():
         help="Save model checkpoints to this file when test " "accuracy improves",
         default=None,
     )
-    sp_exp.add_argument("--lr", type=float, help="Learning rate", default=2e-3)
+    sp_exp.add_argument("--lr", type=float, help="Learning rate", default=1e-3)
     sp_exp.add_argument("--reg", type=float, help="L2 regularization", default=1e-3)
 
     # # Model
@@ -232,14 +198,6 @@ def parse_cli():
         help="Pool after this number of conv layers",
         required=True,
     )
-    # sp_exp.add_argument(
-    #     "--dilate-every",
-    #     "-de",
-    #     type=int,
-    #     metavar="D",
-    #     help="dilate after this number of conv layers",
-    #     required=True,
-    # )
     sp_exp.add_argument(
         "--hidden-dims",
         "-H",

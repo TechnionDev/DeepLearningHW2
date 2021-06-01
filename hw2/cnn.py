@@ -290,23 +290,25 @@ class InceptionBlock(nn.Module):
         super().__init__()
         out_channels = int(out_channels / 4)
         self.wide_layer = []
-        pooling = nn.Sequential(
-                            POOLINGS[pooling_type](kernel_size=3, stride=1, padding=1),
-                            nn.Conv2d(in_channels=in_channels,
-                            out_channels=out_channels,
-                            kernel_size=1))
+        pooling = [
+                    POOLINGS[pooling_type](kernel_size=3, stride=1, padding=1),
+                    nn.Conv2d(in_channels=in_channels,
+                    out_channels=out_channels,
+                    kernel_size=1)]
         self.wide_layer += [pooling]
-        self.wide_layer += [nn.Conv2d(in_channels=in_channels,
+        self.wide_layer += [[nn.Conv2d(in_channels=in_channels,
                             out_channels=out_channels,
                             kernel_size=kernel_size,
                             padding=int((kernel_size - 1) / 2),
-                            bias=True) for kernel_size in kernel_sizes]
+                            bias=True)] for kernel_size in kernel_sizes]
+        if dropout > 0:
+            self.wide_layer = [conv+  [nn.Dropout2d(p=dropout)] for conv in self.wide_layer]   
+        if batchnorm:
+            self.wide_layer = [conv+[nn.BatchNorm2d(num_features=out_channels)] for conv in self.wide_layer]
+        self.wide_layer = [nn.Sequential(*filt) for filt in self.wide_layer]
         self.wide_layer = nn.ModuleList(self.wide_layer)
         self.activation_layer = ACTIVATIONS[activation_type](**activation_params)
-        self.size=2
-        # self.wide_layer=nn.Sequential(*self.wide_layer)
 
-        # print(self.wide_layer)
     def forward(self,x):
         output = [conv_filter(x) for conv_filter in self.wide_layer]
         activated = [self.activation_layer(element) for element in output]
@@ -370,17 +372,98 @@ class ResNetClassifier(ConvClassifier):
         return seq
 
 class YourCodeNet(ConvClassifier):
-    def __init__(self, *args, **kwargs):
+    def __init__(
+            self,
+            in_size,
+            out_classes,
+            channels,
+            hidden_dims,
+            dilation_params ={},
+            pool_every = 2,
+            batchnorm=False,
+            dropout=0.0,
+            **kwargs,
+    ):
         """
-        See ConvClassifier.__init__
+        See arguments of ConvClassifier & ResidualBlock.
         """
-        super().__init__(*args, **kwargs)
+        self.dilation_params = dilation_params
+        self.dilate_every = 4
+        self.batchnorm = batchnorm
+        self.dropout = dropout
+        self.in_size = in_size
+        super().__init__(
+            in_size, out_classes, channels,pool_every, hidden_dims, **kwargs
+        )
+    def _make_feature_extractor(self):
+        in_channel,_,_=self.in_size
+        cur_in_channels = in_channel
+        i = 0
+        layers = []
+        while i < len(self.channels):
+            layers += [InceptionBlock(in_channels = cur_in_channels,
+                                     out_channels = self.channels[i],
+                                     batchnorm=self.batchnorm,
+                                     dropout=self.dropout,
+                                     activation_type=self.activation_type,
+                                     activation_params=self.activation_params)]
+            i += 1
+            cur_in_channels = self.channels[i - 1]
+            if self.dilate_every!=-1 and i%self.dilate_every == 0:
+                layers += [nn.Conv2d(in_channels=cur_in_channels,
+                                    out_channels=cur_in_channels,
+                                    **self.dilation_params),
+                            ACTIVATIONS[self.activation_type](**self.activation_params)]
+            
+        seq = nn.Sequential(*layers)
+        return seq
 
-        # TODO: Add any additional initialization as needed.
-        # ====== YOUR CODE: ======
-        raise NotImplementedError()
-        # ========================
-
+class YourCodeNet2(ConvClassifier):
+    def __init__(
+            self,
+            in_size,
+            out_classes,
+            channels,
+            hidden_dims,
+            dilation_params ={},
+            pool_every = 2,
+            batchnorm=False,
+            dropout=0.0,
+            **kwargs,
+    ):
+        """
+        See arguments of ConvClassifier & ResidualBlock.
+        """
+        self.dilation_params = dilation_params
+        self.dilate_every = 4
+        self.batchnorm = batchnorm
+        self.dropout = dropout
+        self.in_size = in_size
+        super().__init__(
+            in_size, out_classes, channels,pool_every, hidden_dims, **kwargs
+        )
+    def _make_feature_extractor(self):
+        in_channel,_,_=self.in_size
+        cur_in_channels = in_channel
+        i = 0
+        layers = []
+        while i < len(self.channels):
+            layers += [InceptionBlock(in_channels = cur_in_channels,
+                                     out_channels = self.channels[i],
+                                     batchnorm=self.batchnorm,
+                                     dropout=self.dropout,
+                                     activation_type=self.activation_type,
+                                     activation_params=self.activation_params)]
+            i += 1
+            cur_in_channels = self.channels[i - 1]
+            if self.dilate_every!=-1 and i%self.dilate_every == 0:
+                layers += [nn.Conv2d(in_channels=cur_in_channels,
+                                    out_channels=cur_in_channels,
+                                    **self.dilation_params),
+                            ACTIVATIONS[self.activation_type](**self.activation_params)]
+            
+        seq = nn.Sequential(*layers)
+        return seq
     # TODO: Change whatever you want about the ConvClassifier to try to
     #  improve it's results on CIFAR-10.
     #  For example, add batchnorm, dropout, skip connections, change conv
