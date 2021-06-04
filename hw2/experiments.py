@@ -85,26 +85,13 @@ def run_experiment(
     conv_params=dict(kernel_size=3, stride=1, padding=1)
     pooling_params=dict(kernel_size=2)
     x0, _=ds_train[0]
-    dilation_params = {
-    'kernel_size':5,
-    'stride':1,
-    'dilation':2
-    }
-    # model = cnn.YourCodeNet(
-    #     x0.shape, 10, 
-    #     channels=[16,32],
-    #      pool_every=2,
-    #       hidden_dims=[64,32],
-    #       dialate_every = 1,dilation_params=dialation_params ,dropout=0.4,batchnorm=True)
 
-    
     model = model_cls(x0.shape, 10, channels=channels,
                       pool_every=pool_every, hidden_dims=hidden_dims, 
-                      batchnorm=True,
-                      conv_params=conv_params, activation_type='relu',
-                      pooling_type='max', pooling_params=pooling_params,dilation_params=dilation_params,**kw)
+                      conv_params=conv_params, activation_type='lrelu', activation_params=dict(negative_slope=0.01),
+                      pooling_type='avg', pooling_params=pooling_params)
     print(model)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=reg, eps=1e-4)
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr, weight_decay=reg)
     loss_fn = torch.nn.CrossEntropyLoss()
 
     trainer = training.TorchTrainer(model, loss_fn, optimizer, device=device)
@@ -203,7 +190,7 @@ def parse_cli():
         help="Save model checkpoints to this file when test " "accuracy improves",
         default=None,
     )
-    sp_exp.add_argument("--lr", type=float, help="Learning rate", default=2e-3)
+    sp_exp.add_argument("--lr", type=float, help="Learning rate", default=1e-3)
     sp_exp.add_argument("--reg", type=float, help="L2 regularization", default=1e-3)
 
     # # Model

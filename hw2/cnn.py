@@ -270,10 +270,26 @@ class ResidualBottleneckBlock(ResidualBlock):
                          kernel_sizes=inner_kernel_sizes,
                          **kwargs)
         # ========================
-# class WideArray
+
+class SkipConnection(nn.Module):
+    """
+    A skip connection module 
+    """
+    def __init__(self,
+    main_path,
+    in_channels,
+    out_channels):
+        super().__init__()
+        self.main_path = main_path
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.shortcut = nn.Identity() if in_channels==out_channels else nn.Conv2d(in_channels=in_channels,out_channels=out_channels,kernel_size=1)
+    def forward(self,X):
+        return self.main_path(X)+self.shortcut(X)
+
 class InceptionBlock(nn.Module):
     """
-    Generate a general purpose Insight block
+    Generate a general purpose Inception block
     """
     def __init__(
             self,
@@ -288,6 +304,7 @@ class InceptionBlock(nn.Module):
             **kwargs,
     ):
         super().__init__()
+        assert(out_channels%4==0)
         out_channels = int(out_channels / 4)
         self.wide_layer = []
         pooling = [
@@ -382,93 +399,51 @@ class YourCodeNet(ConvClassifier):
             pool_every = 2,
             batchnorm=False,
             dropout=0.0,
+            pooling_params = {'kernel_size':2},
+            pooling_type = "avg",
             **kwargs,
     ):
         """
         See arguments of ConvClassifier & ResidualBlock.
         """
+        self.pooling_params = pooling_params
         self.dilation_params = dilation_params
         self.dilate_every = 4
         self.batchnorm = batchnorm
         self.dropout = dropout
         self.in_size = in_size
         super().__init__(
-            in_size, out_classes, channels,pool_every, hidden_dims, **kwargs
+            in_size, out_classes, channels,pool_every, hidden_dims,pooling_type=pooling_type,pooling_params=pooling_params, **kwargs
         )
     def _make_feature_extractor(self):
-        in_channel,_,_=self.in_size
-        cur_in_channels = in_channel
-        i = 0
+        in_channels, in_h, in_w, = tuple(self.in_size)
+
         layers = []
+        # TODO: Create the feature extractor part of the model:
+        #  [-> (CONV -> ACT)*P -> POOL]*(N/P)
+        #   \------- SKIP ------/
+        #  For the ResidualBlocks, use only dimension-preserving 3x3 convolutions.
+        #  Apply Pooling to reduce dimensions after every P convolutions.
+        #  Notes:
+        #  - If N is not divisible by P, then N mod P additional
+        #    CONV->ACT (with a skip over them) should exist at the end,
+        #    without a POOL after them.
+        #  - Use your own ResidualBlock implementation.
+        # ====== YOUR CODE: ======
+        cur_in_channels = in_channels
+        i = 0
         while i < len(self.channels):
-            layers += [InceptionBlock(in_channels = cur_in_channels,
-                                     out_channels = self.channels[i],
-                                     batchnorm=self.batchnorm,
-                                     dropout=self.dropout,
-                                     activation_type=self.activation_type,
-                                     activation_params=self.activation_params)]
+            layers += [SkipConnection(InceptionBlock(in_channels=cur_in_channels,
+                                                     out_channels=self.channels[i],
+                                                     batchnorm=True,
+                                                     activation_type="lrelu",
+                                                     activation_params={'negative_slope':0.01},
+                                                     pooling_type="max"),
+                                                     in_channels=cur_in_channels,out_channels=self.channels[i])]
+            print(self.pooling_params)
+            if i%self.pool_every==0:
+                layers += [POOLINGS[self.pooling_type](**self.pooling_params)]
             i += 1
             cur_in_channels = self.channels[i - 1]
-            if self.dilate_every!=-1 and i%self.dilate_every == 0:
-                layers += [nn.Conv2d(in_channels=cur_in_channels,
-                                    out_channels=cur_in_channels,
-                                    **self.dilation_params),
-                            ACTIVATIONS[self.activation_type](**self.activation_params)]
-            
         seq = nn.Sequential(*layers)
         return seq
-
-class YourCodeNet2(ConvClassifier):
-    def __init__(
-            self,
-            in_size,
-            out_classes,
-            channels,
-            hidden_dims,
-            dilation_params ={},
-            pool_every = 2,
-            batchnorm=False,
-            dropout=0.0,
-            **kwargs,
-    ):
-        """
-        See arguments of ConvClassifier & ResidualBlock.
-        """
-        self.dilation_params = dilation_params
-        self.dilate_every = 4
-        self.batchnorm = batchnorm
-        self.dropout = dropout
-        self.in_size = in_size
-        super().__init__(
-            in_size, out_classes, channels,pool_every, hidden_dims, **kwargs
-        )
-    def _make_feature_extractor(self):
-        in_channel,_,_=self.in_size
-        cur_in_channels = in_channel
-        i = 0
-        layers = []
-        while i < len(self.channels):
-            layers += [InceptionBlock(in_channels = cur_in_channels,
-                                     out_channels = self.channels[i],
-                                     batchnorm=self.batchnorm,
-                                     dropout=self.dropout,
-                                     activation_type=self.activation_type,
-                                     activation_params=self.activation_params)]
-            i += 1
-            cur_in_channels = self.channels[i - 1]
-            if self.dilate_every!=-1 and i%self.dilate_every == 0:
-                layers += [nn.Conv2d(in_channels=cur_in_channels,
-                                    out_channels=cur_in_channels,
-                                    **self.dilation_params),
-                            ACTIVATIONS[self.activation_type](**self.activation_params)]
-            
-        seq = nn.Sequential(*layers)
-        return seq
-    # TODO: Change whatever you want about the ConvClassifier to try to
-    #  improve it's results on CIFAR-10.
-    #  For example, add batchnorm, dropout, skip connections, change conv
-    #  filter sizes etc.
-    # ====== YOUR CODE: ======
-    # raise NotImplementedError()
-
-    # ========================
