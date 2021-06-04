@@ -271,6 +271,67 @@ class ResidualBottleneckBlock(ResidualBlock):
                          **kwargs)
         # ========================
 
+class SkipConnection(nn.Module):
+    """
+    A skip connection module 
+    """
+    def __init__(self,
+    main_path,
+    in_channels,
+    out_channels):
+        super().__init__()
+        self.main_path = main_path
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.shortcut = nn.Identity() if in_channels==out_channels else nn.Conv2d(in_channels=in_channels,out_channels=out_channels,kernel_size=1)
+    def forward(self,X):
+        return self.main_path(X)+self.shortcut(X)
+
+class InceptionBlock(nn.Module):
+    """
+    Generate a general purpose Inception block
+    """
+    def __init__(
+            self,
+            in_channels: int,
+            out_channels: int,
+            kernel_sizes: Sequence[int] =[1,3,5],
+            batchnorm: bool = False,
+            dropout: float = 0.0,
+            activation_type: str = "relu",
+            activation_params: dict = {},
+            pooling_type: str = "max",
+            **kwargs,
+    ):
+        super().__init__()
+        assert(out_channels%4==0)
+        out_channels = int(out_channels / 4)
+        self.wide_layer = []
+        pooling = [
+                    POOLINGS[pooling_type](kernel_size=3, stride=1, padding=1),
+                    nn.Conv2d(in_channels=in_channels,
+                    out_channels=out_channels,
+                    kernel_size=1)]
+        self.wide_layer += [pooling]
+        self.wide_layer += [[nn.Conv2d(in_channels=in_channels,
+                            out_channels=out_channels,
+                            kernel_size=kernel_size,
+                            padding=int((kernel_size - 1) / 2),
+                            bias=True)] for kernel_size in kernel_sizes]
+        if dropout > 0:
+            self.wide_layer = [conv+  [nn.Dropout2d(p=dropout)] for conv in self.wide_layer]   
+        if batchnorm:
+            self.wide_layer = [conv+[nn.BatchNorm2d(num_features=out_channels)] for conv in self.wide_layer]
+        self.wide_layer = [nn.Sequential(*filt) for filt in self.wide_layer]
+        self.wide_layer = nn.ModuleList(self.wide_layer)
+        self.activation_layer = ACTIVATIONS[activation_type](**activation_params)
+
+    def forward(self,x):
+        output = [conv_filter(x) for conv_filter in self.wide_layer]
+        activated = [self.activation_layer(element) for element in output]
+        return torch.cat(activated,1) 
+        
+    
 
 class ResNetClassifier(ConvClassifier):
     def __init__(
@@ -327,24 +388,62 @@ class ResNetClassifier(ConvClassifier):
         seq = nn.Sequential(*layers)
         return seq
 
-
 class YourCodeNet(ConvClassifier):
-    def __init__(self, *args, **kwargs):
+    def __init__(
+            self,
+            in_size,
+            out_classes,
+            channels,
+            hidden_dims,
+            dilation_params ={},
+            pool_every = 2,
+            batchnorm=False,
+            dropout=0.0,
+            pooling_params = {'kernel_size':2},
+            pooling_type = "avg",
+            **kwargs,
+    ):
         """
-        See ConvClassifier.__init__
+        See arguments of ConvClassifier & ResidualBlock.
         """
-        super().__init__(*args, **kwargs)
+        self.pooling_params = pooling_params
+        self.dilation_params = dilation_params
+        self.dilate_every = 4
+        self.batchnorm = batchnorm
+        self.dropout = dropout
+        self.in_size = in_size
+        super().__init__(
+            in_size, out_classes, channels,pool_every, hidden_dims,pooling_type=pooling_type,pooling_params=pooling_params, **kwargs
+        )
+    def _make_feature_extractor(self):
+        in_channels, in_h, in_w, = tuple(self.in_size)
 
-        # TODO: Add any additional initialization as needed.
+        layers = []
+        # TODO: Create the feature extractor part of the model:
+        #  [-> (CONV -> ACT)*P -> POOL]*(N/P)
+        #   \------- SKIP ------/
+        #  For the ResidualBlocks, use only dimension-preserving 3x3 convolutions.
+        #  Apply Pooling to reduce dimensions after every P convolutions.
+        #  Notes:
+        #  - If N is not divisible by P, then N mod P additional
+        #    CONV->ACT (with a skip over them) should exist at the end,
+        #    without a POOL after them.
+        #  - Use your own ResidualBlock implementation.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
-        # ========================
-
-    # TODO: Change whatever you want about the ConvClassifier to try to
-    #  improve it's results on CIFAR-10.
-    #  For example, add batchnorm, dropout, skip connections, change conv
-    #  filter sizes etc.
-    # ====== YOUR CODE: ======
-    # raise NotImplementedError()
-
-    # ========================
+        cur_in_channels = in_channels
+        i = 0
+        while i < len(self.channels):
+            layers += [SkipConnection(InceptionBlock(in_channels=cur_in_channels,
+                                                     out_channels=self.channels[i],
+                                                     batchnorm=True,
+                                                     activation_type="lrelu",
+                                                     activation_params={'negative_slope':0.01},
+                                                     pooling_type="max"),
+                                                     in_channels=cur_in_channels,out_channels=self.channels[i])]
+            print(self.pooling_params)
+            if i%self.pool_every==0:
+                layers += [POOLINGS[self.pooling_type](**self.pooling_params)]
+            i += 1
+            cur_in_channels = self.channels[i - 1]
+        seq = nn.Sequential(*layers)
+        return seq

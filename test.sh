@@ -1,0 +1,1 @@
+srun -c 2 --gres=gpu:1 --pty python -m hw2.experiments run-exp -n test -K 64 128 256 -L 16 -P 12 -H  256 128 -M resnet --epochs 100 --bs-train 50 --batches 10 --early-stopping 5 --run-name exp1_4_L8_K64-128-256-new
