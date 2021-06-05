@@ -9,14 +9,14 @@ math (delimited with $$).
 # Part 1 answers
 
 part1_q1 = r"""
-*Your answer:*
+**Your answer:**
 
 
-Write your answer using *markdown* and $\LaTeX$:
-python
+Write your answer using **markdown** and $\LaTeX$:
+```python
 # A code block
 a = 2
-
+```
 An equation: $e^{i\pi} -1 = 0$
 
 """
@@ -69,27 +69,27 @@ def part2_dropout_hp():
 
 
 part2_q1 = r"""
-*Your answer:*
+**Your answer:**
 
 
-Write your answer using *markdown* and $\LaTeX$:
-python
+Write your answer using **markdown** and $\LaTeX$:
+```python
 # A code block
 a = 2
-
+```
 An equation: $e^{i\pi} -1 = 0$
 
 """
 
 part2_q2 = r"""
-*Your answer:*
+**Your answer:**
 
 
-Write your answer using *markdown* and $\LaTeX$:
-python
+Write your answer using **markdown** and $\LaTeX$:
+```python
 # A code block
 a = 2
-
+```
 An equation: $e^{i\pi} -1 = 0$
 
 """
@@ -99,80 +99,71 @@ An equation: $e^{i\pi} -1 = 0$
 # Part 3 answers
 
 part3_q1 = r"""
-*Your answer:*
+**Your answer:**
 
-
-Write your answer using *markdown* and $\LaTeX$:
-python
-# A code block
-a = 2
-
-An equation: $e^{i\pi} -1 = 0$
+1. 
 
 """
 
 part3_q2 = r"""
-*Your answer:*
+**Your answer:**
 
 
-Write your answer using *markdown* and $\LaTeX$:
-python
-# A code block
-a = 2
-
-An equation: $e^{i\pi} -1 = 0$
+1. The depth with best results was L4. This is in our opinion, because is was complex enough to express a good
+approximation of reality but not too complex to suffer from vanishing gradients.
+2. The network wasn't trainable for L8, L16 (for 32 features. For 64 features it was just L16). A way is to use skip
+connections which will carry information that wouldn't vanish as easily. Another way to solve it would be to add partial
+loss functions to different parts of the network. Essentially creating skip connections for the loss functions and
+shortening the distance between them and the starting layers.
 
 """
 
 part3_q3 = r"""
-*Your answer:*
+L4 and L8 produced similar results for K32 but L4 was much faster to train, thus, L4 is preferable in the experiment.
+
+That being said, I think that for a different seed/more data/more epochs, L8 can potentially outperform L4 because it
+seems that its graph is monotonically increasing and with an average of better results compared to L4.
 
 
-Write your answer using *markdown* and $\LaTeX$:
-python
-# A code block
-a = 2
+Both in 1.1 and 1.2, increasing the size of the network too much (either width or depth), has negative impact on the
+results. There is s sweet spot where the model provides the best results. 
 
-An equation: $e^{i\pi} -1 = 0$
+ 
 
 """
 
 part3_q4 = r"""
-*Your answer:*
-
-
-Write your answer using *markdown* and $\LaTeX$:
-python
-# A code block
-a = 2
-
-An equation: $e^{i\pi} -1 = 0$
+**Your answer:**
+Again we see a sweet spot (for L2) which produces the best results.
+We can also see the volatility of simple network (L1). And for L4, the network becomes too deep the we get vanishing
+gradients.
+It also seems that there was an anomaly in the test **data**. It is likely the test rather than the model itself because
+the dip happens for for L1 and L3 which are inherently different models.
 
 """
 
 part3_q5 = r"""
-*Your answer:*
+**Your answer:**
+In this experiment we use a resnet which allows us to train much deeper models without suffering from vanishing
+gradients. We train networks of depth 32 which we couldn't do before (even L16 failed).
 
+Compared to 1.1 and 1.3, there's a regression in the accuracy, most likely because of incompatibility of the hyper
+parameters. These models were much slower to train which can be mitigated by using residual bottleneck blocks.
 
-Write your answer using *markdown* and $\LaTeX$:
-python
-# A code block
-a = 2
-
-An equation: $e^{i\pi} -1 = 0$
+Also, like previous (and everything in life), moderation is key. Too much or too little, produces bad results. 
 
 """
 
 part3_q6 = r"""
-*Your answer:*
+**Your answer:**
+In experiment 2, the results were marginally improved even for relatively poor choice of hyper parameters. We can see in
+the graphs that the potential is greater than in the experiments of 1.X.
 
-
-Write your answer using *markdown* and $\LaTeX$:
-python
-# A code block
-a = 2
-
-An equation: $e^{i\pi} -1 = 0$
+ - It is possible that a better choice for `pool_every` (lower than 12) would greatly improve the results for the models
+with L3, L6, L9. 
+ - `hidden_dims` could also be tweaked (more layer and bigger layers) could also improve results. 
+ - `lr` - modifying this value could also improve our model. We can see volatility which might indicate too high a value.
+ - `reg` - changing the regularization might improve the performance of the model. 
 
 """
 # ==============

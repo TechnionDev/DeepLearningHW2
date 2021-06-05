@@ -82,10 +82,10 @@ class Trainer(abc.ABC):
             # ====== YOUR CODE: ======
             actual_num_epochs = epoch
             epoch_train_result = self.train_epoch(dl_train, verbose=verbose, **kw)
-            train_loss += [sum(epoch_train_result.losses) / len(epoch_train_result.losses)]
+            train_loss += epoch_train_result.losses
             train_acc += [epoch_train_result.accuracy]
             epoch_test_result = self.test_epoch(dl_test, verbose=verbose, **kw)
-            test_loss += [sum(epoch_test_result.losses) / len(epoch_test_result.losses)]
+            test_loss += epoch_test_result.losses
             test_acc += [epoch_test_result.accuracy]
 
             if best_acc is None or best_acc < epoch_test_result.accuracy:
