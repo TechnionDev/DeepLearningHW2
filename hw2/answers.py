@@ -10,15 +10,10 @@ math (delimited with $$).
 
 part1_q1 = r"""
 **Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+1. Using the normal rules for tensor derivation, for each cell in the matrix, we derive by the whole of the matrix 
+X, therefore, we would end up with a tensor of the shape of N x out_features x N x in_features.
+2. if we store the matrix in a non-sparse way, as we probably would considering the computational cost of storing it
+sparsely, we would need N x out_features X N x in_features x 4 = 137,438,953,472 bytes = 128TB of data
 """
 
 # ==============
@@ -70,28 +65,20 @@ def part2_dropout_hp():
 
 part2_q1 = r"""
 **Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+1. The graphs we see roughly match what we expected to see from the dropout results, where with no dropout, we see we 
+overfit on the data, which results in poor results on the train set, with a medium dropout, we achieve our best results, 
+as expected, where we don't overfit and also achieve better results on the test, and in high dropout, where we drop most
+of our neurons, we achieve a highly random behavior, where it might achieve better or worse results, depending on the seed.
+2. as described before, the high dropout achieved randomness in the graph, as can be seen in the jaggedness and non-monotonic
+behaviour we see, and in the no dropout we overfit, as should be expected. 
 """
 
 part2_q2 = r"""
 **Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+It is possible, (it also has happened to us on part 3). this can happen in situations, where, in results where we err'd at, 
+we had a big margin of error, and therefore, lost heavily on that, but in general, made fewer mistakes in the epoch, and therefore,
+the test score increased. this can go on for a couple of epochs, where the gradient tries to minimize the score of those points
+where it made an error on, and hurt a different subset of results in accordance, but still, improve on the whole.
 """
 # ==============
 
@@ -101,8 +88,17 @@ An equation: $e^{i\pi} -1 = 0$
 part3_q1 = r"""
 **Your answer:**
 
-1. 
-
+1. The parameter count per layers (with bias) is  $C=out*(size^2*in+1)$. the param count for the example given, is
+$C_1=2*256*(9*256+1)=1,180,160$ params, where in the bottleneck block, the result (with 2 3x3 conv in the middle) would be 
+$C_2=64*(1*256+1)+64*(9*64+1)+256(1*64+1)=70,016$ params, and with 2 3x3 convolutions it would be 
+$C_3=64*(1*256+1)+2*64*(9*64+1)+256(1*64+1)=106,944$ params, which is much *much* lower than the original residual block.
+2. Obviously, the residual block would incur a higher performance cost with regards to FLOPS, seeing as we would perform
+a higher-dimensional action, with a 3x3 convolution, against the residual bottleneck block, which would do the same 
+action, on a lesser dimensional count.
+3. This part is dependant on weather we execute 2 3x3 convolutions on the bottleneck block. if we do, the bottleneck block is 
+able to combine spatially in the same manner as the regular old residual block,(we result in the same receptive field in the 
+H x W dimensions), and by combining the channels in the intro to the bottleneck block, and redispersing them on the output,
+we combine across feature maps, in a way where it is more difficult in the regular residual block.
 """
 
 part3_q2 = r"""

@@ -90,7 +90,6 @@ def run_experiment(
                       pool_every=pool_every, hidden_dims=hidden_dims, 
                       conv_params=conv_params, activation_type='lrelu', activation_params=dict(negative_slope=0.01),
                       pooling_type='avg', pooling_params=pooling_params)
-    print(model)
     optimizer = torch.optim.RMSprop(model.parameters(), lr=lr, weight_decay=reg)
     loss_fn = torch.nn.CrossEntropyLoss()
 
