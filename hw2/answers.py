@@ -119,7 +119,7 @@ L4 and L8 produced similar results for K32 but L4 was much faster to train, thus
 
 That being said, I think that for a different seed/more data/more epochs, L8 can potentially outperform L4 because it
 seems that its graph is monotonically increasing and with an average of better results compared to L4.
-
+we saw a very strange behaviour in that k32 could not train, probably due to a bad initialization of parameters.
 
 Both in 1.1 and 1.2, increasing the size of the network too much (either width or depth), has negative impact on the
 results. There is s sweet spot where the model provides the best results. 
@@ -145,6 +145,7 @@ gradients. We train networks of depth 32 which we couldn't do before (even L16 f
 
 Compared to 1.1 and 1.3, there's a regression in the accuracy, most likely because of incompatibility of the hyper
 parameters. These models were much slower to train which can be mitigated by using residual bottleneck blocks.
+They also seemed more "spikey" in behaviour, and gained heavily from a high-channel count.
 
 Also, like previous (and everything in life), moderation is key. Too much or too little, produces bad results. 
 
@@ -152,8 +153,9 @@ Also, like previous (and everything in life), moderation is key. Too much or too
 
 part3_q6 = r"""
 **Your answer:**
-In experiment 2, the results were marginally improved even for relatively poor choice of hyper parameters. We can see in
-the graphs that the potential is greater than in the experiments of 1.X.
+In experiment 2, the results were improved,both in depth we could reach and train, and in results (reach approx 75%) even for relatively poor choice of hyper parameters. We can see in
+the graphs that the potential is greater than in the experiments of 1.X. 
+In addition, we can see the network we chose gains heavily from more depth, thanks to the inception blocks, we could reach a highly spatial variant receptive fields, and could train further thanks to the skip connections.
 
  - It is possible that a better choice for `pool_every` (lower than 12) would greatly improve the results for the models
 with L3, L6, L9. 

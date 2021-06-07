@@ -1,0 +1,3 @@
+for f in run-exp*.sh; do
+  bash "$f" 
+done
